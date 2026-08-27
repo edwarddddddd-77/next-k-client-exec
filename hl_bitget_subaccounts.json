@@ -1,0 +1,158 @@
+{
+  "updated": "2026-08-04",
+  "note": "All routes enabled:false in git. Railway ENABLE_BOTS → live_only. Seat C uses main BITGET_* (switched from J 2026-08-04). Enabled seats with empty SUB_* keys auto-fall back to BITGET_*. Never commit enabled:true.",
+  "subaccounts": [
+    {
+      "id": "A",
+      "label": "Bot A",
+      "bot_id": "bot_a",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_A",
+      "scale": 1.0
+    },
+    {
+      "id": "B",
+      "label": "Bot B",
+      "bot_id": "bot_b",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_B",
+      "scale": 1.0
+    },
+    {
+      "id": "C",
+      "label": "Bot C",
+      "bot_id": "bot_c",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET",
+      "scale": 1.0
+    },
+    {
+      "id": "D",
+      "label": "Bot D",
+      "bot_id": "bot_d",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_D",
+      "scale": 1.0
+    },
+    {
+      "id": "E",
+      "label": "Bot E",
+      "bot_id": "bot_e",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_E",
+      "scale": 1.0
+    },
+    {
+      "id": "F",
+      "label": "Bot F",
+      "bot_id": "bot_f",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_F",
+      "scale": 1.0
+    },
+    {
+      "id": "G",
+      "label": "Bot G",
+      "bot_id": "bot_g",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_G",
+      "scale": 1.0
+    },
+    {
+      "id": "H",
+      "label": "Bot H",
+      "bot_id": "bot_h",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_H",
+      "scale": 1.0
+    },
+    {
+      "id": "I",
+      "label": "Bot I",
+      "bot_id": "bot_i",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_I",
+      "scale": 1.0
+    },
+    {
+      "id": "J",
+      "label": "Bot J",
+      "bot_id": "bot_j",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_J",
+      "scale": 1.0
+    },
+    {
+      "id": "K",
+      "label": "Bot K",
+      "bot_id": "bot_k",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_K",
+      "scale": 1.0
+    },
+    {
+      "id": "L",
+      "label": "Bot L",
+      "bot_id": "bot_l",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_L",
+      "scale": 1.0
+    },
+    {
+      "id": "M",
+      "label": "Bot M",
+      "bot_id": "bot_m",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_M",
+      "scale": 1.0
+    },
+    {
+      "id": "N",
+      "label": "Bot N",
+      "bot_id": "bot_n",
+      "coins": [
+        "BTC",
+        "ETH",
+        "HYPE",
+        "STRK"
+      ],
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_N",
+      "scale": 1.0
+    },
+    {
+      "id": "O",
+      "label": "Bot O",
+      "bot_id": "bot_o",
+      "coins": null,
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_O",
+      "scale": 1.0
+    },
+    {
+      "id": "P",
+      "label": "Bot P",
+      "bot_id": "bot_p",
+      "coins": [
+        "HYPE",
+        "ETH"
+      ],
+      "enabled": false,
+      "env_prefix": "BITGET_SUB_P",
+      "scale": 1.0
+    }
+  ]
+}
