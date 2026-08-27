@@ -1,4 +1,4 @@
-"""Paper book adapter for Bitget executor (fed by hl-event bot_state)."""
+"""Paper book adapter — same surface as monolith hl_paper_copy for executor."""
 
 from __future__ import annotations
 
@@ -12,6 +12,13 @@ def load_paper() -> dict[str, Any]:
 
 
 def refresh_target_health(*, force: bool = False) -> dict[str, Any]:
+    if force:
+        try:
+            from hl_exec.ingest_client import sync_from_ingest
+        except Exception:
+            pass
+        else:
+            sync_from_ingest()
     return load_paper()
 
 

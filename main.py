@@ -11,8 +11,11 @@ from env_loader import load_env_oi
 
 load_env_oi()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
+
+from utils.rate_limit import MinIntervalGuard
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,6 +23,7 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger(__name__)
+_catch_up_cooldown = MinIntervalGuard("HL_CATCH_UP_COOLDOWN_SEC", 60.0)
 
 
 @asynccontextmanager
@@ -69,6 +73,31 @@ def live_status_route():
     from utils.hl_bitget_executor import status
 
     return status()
+
+
+@app.post("/live/catch-up")
+async def post_hl_bitget_catch_up(
+    bot_id: str = Query(..., description="live seat id, e.g. bot_c"),
+    coins: str = Query(..., description="comma-separated HL coins, e.g. xyz:GOOGL"),
+    refresh: bool = Query(True, description="refresh leader snapshot from ingest before sizing"),
+):
+    from utils.hl_bitget_executor import catch_up_orphan_coins
+
+    allowed, wait = _catch_up_cooldown.check_allow()
+    if not allowed:
+        raise HTTPException(status_code=429, detail=f"catch_up cooldown, retry in {wait:.0f}s")
+
+    coin_list = [c.strip() for c in str(coins or "").split(",") if c.strip()]
+    if not coin_list:
+        raise HTTPException(status_code=400, detail="coins_required")
+
+    out = await run_in_threadpool(
+        lambda: catch_up_orphan_coins(str(bot_id or "").strip(), coin_list, refresh_target=bool(refresh))
+    )
+    if not out.get("ok"):
+        raise HTTPException(status_code=400, detail=out.get("error") or "catch_up_failed")
+    _catch_up_cooldown.mark_used()
+    return out
 
 
 if __name__ == "__main__":
