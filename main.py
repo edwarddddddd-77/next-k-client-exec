@@ -75,6 +75,20 @@ def live_status_route():
     return status()
 
 
+@app.get("/live/desk")
+def live_desk_route():
+    """映仓台卡片：本 KYC 的 Bitget 权益/仓位（overlay）。"""
+    from utils.hl_bitget_executor import desk_seat_snapshot, status
+
+    seat = desk_seat_snapshot()
+    return {
+        "ok": True,
+        "client_id": seat.get("id"),
+        "bot": seat,
+        "live": status(),
+    }
+
+
 @app.post("/live/catch-up")
 async def post_hl_bitget_catch_up(
     bot_id: str = Query(..., description="live seat id, e.g. bot_c"),

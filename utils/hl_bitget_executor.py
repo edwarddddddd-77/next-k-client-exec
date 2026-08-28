@@ -2622,3 +2622,56 @@ def overlay_live_bots(book: dict[str, Any]) -> dict[str, Any]:
             bot["balance"] = None
             bot["live_available"] = None
     return book
+
+
+def _desk_client_id() -> str:
+    """Seat id for 映仓台: HL_DESK_CLIENT_ID or Railway service name → client_a."""
+    raw = (os.getenv("HL_DESK_CLIENT_ID") or "").strip()
+    if raw:
+        return raw.replace("-", "_").lower()
+    svc = (os.getenv("RAILWAY_SERVICE_NAME") or "").strip().lower()
+    if svc.startswith("client-") or svc.startswith("client_"):
+        return svc.replace("-", "_")
+    bots = allow_bot_ids()
+    if bots:
+        return sorted(bots)[0]
+    return "client"
+
+
+def desk_seat_snapshot() -> dict[str, Any]:
+    """One live Bitget seat for desk UI (equity / positions / errors)."""
+    seat_id = _desk_client_id()
+    # Overlay routes look up bot_c (HL_BITGET_BOT_IDS); rename after fetch.
+    mirror_id = "bot_c"
+    bots = allow_bot_ids()
+    if bots and "bot_c" not in bots:
+        mirror_id = sorted(bots)[0]
+    seed = {
+        "id": mirror_id,
+        "live_only": True,
+        "paper": False,
+        "live": True,
+        "venue": "bitget",
+        "copy_current": False,
+        "positions": {},
+    }
+    book = {"bots": {mirror_id: seed}, "positions": {}}
+    overlay_live_bots(book)
+    bot = dict(book.get("bots") or {}).get(mirror_id) or seed
+    bot = dict(bot)
+    bot["id"] = seat_id
+    bot["follow_bot"] = mirror_id
+    bot["label"] = seat_id
+    # Remap nested position keys to seat id
+    pos = bot.get("positions")
+    if isinstance(pos, dict) and pos:
+        remapped: dict[str, Any] = {}
+        for _k, row in pos.items():
+            if not isinstance(row, dict):
+                continue
+            coin = str(row.get("coin") or "").strip() or "UNK"
+            row2 = dict(row)
+            row2["source"] = seat_id
+            remapped[f"{seat_id}:{coin}"] = row2
+        bot["positions"] = remapped
+    return bot
