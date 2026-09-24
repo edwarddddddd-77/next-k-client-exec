@@ -57,15 +57,23 @@ def is_live_only_bot(bot: dict[str, Any] | None) -> bool:
 
 
 def _coin_base(coin: str) -> str:
+    """Bare Bitget base (GOLD→XAU), matching monolith / hl-event."""
     raw = str(coin or "").strip()
     if not raw:
         return ""
-    if ":" in raw:
-        return raw.split(":", 1)[1]
-    return raw
+    try:
+        from utils.hl_bitget_symbol_map import hl_base_ticker
+
+        return hl_base_ticker(raw) or raw.upper().split(":")[-1]
+    except Exception:
+        base = raw.upper().split(":")[-1]
+        if base.endswith("USDT"):
+            base = base[:-4]
+        return base
 
 
 def _scope_keys_for_coin(coin: str) -> set[str]:
+    """Raw upper + aliased base so xyz:GOLD matches XAUUSDT leverage lookup."""
     raw = str(coin or "").strip()
     if not raw:
         return set()
