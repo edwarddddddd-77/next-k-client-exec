@@ -130,33 +130,97 @@ class ExecConsumer:
             self._thread.join(timeout=8)
         logger.info("HL exec consumer stopped")
 
+    @property
+    def alive(self) -> bool:
+        return bool(self._thread and self._thread.is_alive())
+
     def _run(self) -> None:
+        """Reconnect loop — Redis timeout must not kill the consumer forever."""
+        backoff = 1.0
+        while not self._stop.is_set():
+            try:
+                self._run_session()
+                backoff = 1.0
+            except Exception:
+                logger.exception(
+                    "exec consumer session crashed; reconnecting in %.1fs", backoff
+                )
+                self._stop.wait(backoff)
+                backoff = min(60.0, backoff * 2.0)
+
+    def _run_session(self) -> None:
         import redis
 
         url = (os.getenv("REDIS_URL") or "").strip()
         if not url:
             logger.error("REDIS_URL missing — exec consumer idle")
+            self._stop.wait(30.0)
             return
-        client = redis.from_url(url, decode_responses=True)
-        _replay_stream_tail(client)
-        pubsub = client.pubsub(ignore_subscribe_messages=True)
-        channel = _channel(CHANNEL_BATCH)
-        pubsub.subscribe(channel)
-        logger.info("subscribed channel=%s", channel)
-        while not self._stop.is_set():
-            msg = pubsub.get_message(timeout=1.0)
-            if not msg or msg.get("type") != "message":
-                continue
-            data = msg.get("data")
-            if not isinstance(data, str):
-                continue
-            envelope = parse_message(data)
-            if not envelope:
-                continue
+        client = redis.from_url(url, decode_responses=True, socket_timeout=30.0)
+        try:
+            _replay_stream_tail(client)
+            # After a drop, pull latest book so we can flatten leftovers / size
+            # from current leader state (Pub/Sub messages during outage are gone).
             try:
-                _dispatch_envelope(envelope)
+                from hl_exec.ingest_client import sync_from_ingest
+
+                sync_from_ingest()
+            except Exception as exc:
+                logger.warning("exec reconnect ingest sync: %s", exc)
+            # Flatten Bitget leftovers where leader is already flat. Do NOT use
+            # live_align (that would AV-ratio shrink held legs). Unknown action
+            # still runs sub sync + leader-flat leftover flatten only.
+            try:
+                from utils.hl_bitget_executor import maybe_execute_rows
+                from utils.hl_bitget_subaccounts import enabled_routes
+
+                reconcile_rows: list[dict[str, Any]] = []
+                for route in enabled_routes():
+                    reconcile_rows.append(
+                        {
+                            "id": f"reconnect-reconcile-{route.bot_id}",
+                            "action": "reconnect_reconcile",
+                            "source": route.bot_id,
+                            "bot_id": route.bot_id,
+                            "coin": "BTC",
+                            "live_only": True,
+                        }
+                    )
+                if reconcile_rows:
+                    maybe_execute_rows(reconcile_rows)
+                    logger.info(
+                        "exec reconnect reconcile bots=%s",
+                        [r["bot_id"] for r in reconcile_rows],
+                    )
+            except Exception as exc:
+                logger.warning("exec reconnect reconcile: %s", exc)
+            pubsub = client.pubsub(ignore_subscribe_messages=True)
+            channel = _channel(CHANNEL_BATCH)
+            pubsub.subscribe(channel)
+            logger.info("subscribed channel=%s", channel)
+            while not self._stop.is_set():
+                try:
+                    msg = pubsub.get_message(timeout=1.0)
+                except Exception:
+                    logger.exception("pubsub get_message failed — resubscribing")
+                    raise
+                if not msg or msg.get("type") != "message":
+                    continue
+                data = msg.get("data")
+                if not isinstance(data, str):
+                    continue
+                envelope = parse_message(data)
+                if not envelope:
+                    continue
+                try:
+                    _dispatch_envelope(envelope)
+                except Exception:
+                    logger.exception("exec dispatch failed")
+        finally:
+            try:
+                client.close()
             except Exception:
-                logger.exception("exec dispatch failed")
+                pass
 
 
 exec_consumer = ExecConsumer()

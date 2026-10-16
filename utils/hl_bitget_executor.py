@@ -2243,6 +2243,30 @@ def catch_up_orphan_coins(
         want = float(desired.get(sym) or 0.0)
         have = float(open_pos.get(sym) or 0.0)
         coin = _leader_coin_for_sym(sym)
+        if abs(have) > 1e-12 and abs(want) <= 1e-12:
+            # Explicit coin, we hold, leader flat → flatten leftover.
+            orphans.append(
+                {
+                    "symbol": sym,
+                    "coin": coin,
+                    "status": "queued_flatten",
+                    "have": have,
+                    "want": 0.0,
+                }
+            )
+            rows.append(
+                {
+                    "id": f"catch-up-flat-{bid}-{sym}",
+                    "action": "catch_up",
+                    "source": bid,
+                    "bot_id": bid,
+                    "coin": coin,
+                    "start_position": abs(have),
+                    "dir": "Close Long" if have > 0 else "Close Short",
+                    "live_only": True,
+                }
+            )
+            continue
         if abs(have) > 1e-12:
             # Size already open; optional leverage align only (no resize / flip).
             lev = leader_leverage_for_symbol(bid, sym)

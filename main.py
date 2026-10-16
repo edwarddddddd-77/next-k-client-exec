@@ -63,9 +63,15 @@ app.add_middleware(
 
 @app.get("/health")
 def health():
+    from hl_exec.consumer import exec_consumer
     from utils.hl_bitget_executor import status
 
-    return {"ok": True, "service": "next-k-client-exec", "live": status()}
+    return {
+        "ok": True,
+        "service": "next-k-client-exec",
+        "consumer_alive": exec_consumer.alive,
+        "live": status(),
+    }
 
 
 @app.get("/live/status")
